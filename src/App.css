@@ -47,3 +47,7 @@
   background-color: darkslateblue;
   color: #fff;
 }
+
+.currency option {
+  background-color: black;
+}
