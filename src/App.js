@@ -15,7 +15,6 @@ const Calculator = () => {
   const [fromCur, setFromcur] = useState("");
   const [toCur, setTocur] = useState("");
   const [convertAmount, setConvertamount] = useState(0);
-  const [isFetching, setIsfetching] = useState(false);
   const [error, setError] = useState("");
 
   const handleFromcur = (cur) => setFromcur(cur);
@@ -33,7 +32,6 @@ const Calculator = () => {
           return;
         }
         setError("");
-        setIsfetching(true);
         async function converter() {
           const res = await fetch(
             `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCur}&to=${toCur}`
@@ -52,14 +50,13 @@ const Calculator = () => {
         setAmount("");
       } finally {
         setCur();
-        setIsfetching(false);
       }
 
       return function () {
         if (!fromCur || toCur || amount) return;
       };
     },
-    [amount, fromCur, toCur, isFetching]
+    [amount, fromCur, toCur]
   );
 
   return (
@@ -69,13 +66,10 @@ const Calculator = () => {
         <Currency onCur={handleFromcur} cur={fromCur} />
         <Currency onCur={handleTocur} cur={toCur} />
       </div>
-      {isFetching && <Fetch />}
       {<Output amount={`${convertAmount} ${toCur}`} error={error} />}
     </div>
   );
 };
-
-const Fetch = () => <label className="output">Fetching...</label>;
 
 const Amount = ({ onAmount, amount }) => {
   return (
