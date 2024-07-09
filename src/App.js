@@ -16,45 +16,48 @@ const Calculator = () => {
   const [toCur, setTocur] = useState("");
   const [convertAmount, setConvertamount] = useState(0);
   const [error, setError] = useState("");
+  const [isLoading, setIsloading] = useState(false);
 
   const handleFromcur = (cur) => setFromcur(cur);
   const handleTocur = (cur) => setTocur(cur);
   const handleAmount = (amt) => setAmount(Number(amt));
 
+  function reset() {
+    setConvertamount("");
+    setAmount("");
+  }
+
   useEffect(
     function () {
-      const setCur = () => fromCur === toCur && setConvertamount(amount);
       try {
         if (amount <= 0) {
           setError("Please enter a Value");
-          setConvertamount("");
-          setAmount("");
+
+          return reset();
+        }
+
+        if (!fromCur || !toCur) {
+          setError("");
           return;
         }
-        setError("");
+
         async function converter() {
+          setError("");
+          setIsloading(true);
           const res = await fetch(
             `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCur}&to=${toCur}`
           );
-
           const data = await res.json();
-          if (res.ok) {
-            console.log(data);
-            setConvertamount(`${data.rates[toCur]}`);
-          }
+          setConvertamount(data.rates[toCur]);
+          setIsloading(false);
         }
+        if (fromCur === toCur) return setConvertamount(amount);
         converter();
       } catch (err) {
         console.error(err);
         setError(err.message);
         setAmount("");
-      } finally {
-        setCur();
       }
-
-      return function () {
-        if (!fromCur || toCur || amount) return;
-      };
     },
     [amount, fromCur, toCur]
   );
@@ -62,33 +65,40 @@ const Calculator = () => {
   return (
     <div className="calculator">
       <div className="upper">
-        <Amount onAmount={handleAmount} amount={amount} />
-        <Currency onCur={handleFromcur} cur={fromCur} />
-        <Currency onCur={handleTocur} cur={toCur} />
+        <Amount onAmount={handleAmount} amount={amount} isLoading={isLoading} />
+        <Currency onCur={handleFromcur} cur={fromCur} isLoading={isLoading} />
+        <Currency onCur={handleTocur} cur={toCur} isLoading={isLoading} />
       </div>
-      {<Output amount={`${convertAmount} ${toCur}`} error={error} />}
+      {isLoading && <Loader />}
+      {!isLoading && (
+        <Output amount={`${convertAmount} ${toCur}`} error={error} />
+      )}
     </div>
   );
 };
 
-const Amount = ({ onAmount, amount }) => {
+const Loader = () => <label className="loader">loading...</label>;
+
+const Amount = ({ onAmount, amount, isLoading }) => {
   return (
     <div className="amount">
       <input
         type="number"
         value={amount}
         onChange={(e) => onAmount(e.target.value)}
+        // disabled={isLoading}
       />
     </div>
   );
 };
 
-const Currency = ({ onCur, cur }) => {
+const Currency = ({ onCur, isLoading }) => {
   return (
     <select
       className="currency"
       defaultValue={"select"}
       onChange={(e) => onCur(e.target.value)}
+      //   disabled={isLoading}
     >
       <option value="select" disabled>
         --
