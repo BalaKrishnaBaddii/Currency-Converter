@@ -12,47 +12,70 @@ export default function App() {
 // `https://api.frankfurter.app/latest?amount=100&from=EUR&to=USD`
 const Calculator = () => {
   const [amount, setAmount] = useState("");
-  const [fromCur, setFromcur] = useState("USD");
-  const [toCur, setTocur] = useState("INR");
+  const [fromCur, setFromcur] = useState("");
+  const [toCur, setTocur] = useState("");
   const [convertAmount, setConvertamount] = useState(0);
+  const [isFetching, setIsfetching] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleAmount = (amt) => setAmount(Number(amt));
   const handleFromcur = (cur) => setFromcur(cur);
   const handleTocur = (cur) => setTocur(cur);
+  const handleAmount = (amt) => setAmount(Number(amt));
 
   useEffect(
     function () {
+      const setCur = () => fromCur === toCur && setConvertamount(amount);
       try {
+        if (amount <= 0) {
+          setError("Please enter a Value");
+          setConvertamount("");
+          setAmount("");
+          return;
+        }
+        setError("");
+        setIsfetching(true);
         async function converter() {
           const res = await fetch(
             `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCur}&to=${toCur}`
           );
 
+          const data = await res.json();
           if (res.ok) {
-            const data = await res.json();
             console.log(data);
-            setConvertamount(data.rates.INR);
+            setConvertamount(`${data.rates[toCur]}`);
           }
         }
         converter();
       } catch (err) {
-        console.log(err);
+        console.error(err);
+        setError(err.message);
+        setAmount("");
+      } finally {
+        setCur();
+        setIsfetching(false);
       }
+
+      return function () {
+        if (!fromCur || toCur || amount) return;
+      };
     },
-    [amount, fromCur, toCur]
+    [amount, fromCur, toCur, isFetching]
   );
 
   return (
     <div className="calculator">
       <div className="upper">
         <Amount onAmount={handleAmount} amount={amount} />
-        <Currency onCur={handleFromcur} defaulValue={fromCur} />
-        <Currency onCur={handleTocur} defaulValue={toCur} />
+        <Currency onCur={handleFromcur} cur={fromCur} />
+        <Currency onCur={handleTocur} cur={toCur} />
       </div>
-      <Output amount={convertAmount} />
+      {isFetching && <Fetch />}
+      {<Output amount={`${convertAmount} ${toCur}`} error={error} />}
     </div>
   );
 };
+
+const Fetch = () => <label className="output">Fetching...</label>;
 
 const Amount = ({ onAmount, amount }) => {
   return (
@@ -66,13 +89,16 @@ const Amount = ({ onAmount, amount }) => {
   );
 };
 
-const Currency = ({ onCur, defaulValue }) => {
+const Currency = ({ onCur, cur }) => {
   return (
     <select
       className="currency"
-      defaultValue={defaulValue}
+      defaultValue={"select"}
       onChange={(e) => onCur(e.target.value)}
     >
+      <option value="select" disabled>
+        --
+      </option>
       <option value="USD">USD</option>
       <option value="EUR">EUR</option>
       <option value="INR">INR</option>
@@ -81,6 +107,8 @@ const Currency = ({ onCur, defaulValue }) => {
   );
 };
 
-const Output = ({ amount }) => {
-  return <label className="output">{amount}</label>;
+const Output = ({ amount, error }) => {
+  return (
+    <label className={error ? "error" : "output"}>{error || amount}</label>
+  );
 };
